@@ -2,4 +2,4 @@ name = "recalc-shortener"
 main = "worker.ts"
 compatibility_date = "2026-02-03"
 
-assets = { directory = ".", binding = "ASSETS" }
+assets = { directory = "public", binding = "ASSETS" }

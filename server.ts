@@ -22,7 +22,7 @@ const server = Bun.serve({
     }
     
     // Try to serve the file
-    const file = Bun.file('.' + path);
+    const file = Bun.file('public' + path);
     if (await file.exists()) {
       return new Response(file, {
         headers: {

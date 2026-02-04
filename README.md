@@ -22,14 +22,15 @@ The shortener uses several techniques to compress reca.lc URLs:
 ## Project Structure
 
 ```
-├── index.html          # Main shortener UI
-├── go.html             # Redirect page
-├── styles.css          # Shared styles
-├── src/
-│   ├── config.js       # Dictionaries (paths, units, motors)
-│   ├── codec.js        # Binary encoding/decoding
-│   ├── compress.js     # Gzip compression helpers
-│   └── recalc.js       # ReCalc-specific encoding
+├── public/
+│   ├── index.html      # Main shortener UI
+│   ├── go.html         # Redirect page
+│   ├── styles.css      # Shared styles
+│   └── src/
+│       ├── config.js   # Dictionaries (paths, units, motors)
+│       ├── codec.js    # Binary encoding/decoding
+│       ├── compress.js # Gzip compression helpers
+│       └── recalc.js   # ReCalc-specific encoding
 ├── server.ts           # Development server (Bun)
 ├── _redirects          # Cloudflare Pages routing
 ├── _headers            # Cloudflare Pages headers
