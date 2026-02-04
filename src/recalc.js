@@ -1,25 +1,30 @@
 /**
  * ReCalc-specific URL encoding and decoding.
  * 
- * This module handles the conversion between reca.lc URLs and our
- * compact binary format. It uses the dictionaries from config.js
- * to efficiently encode known values.
+ * V2 encoding uses per-calculator parameter schemas to avoid storing
+ * parameter names entirely. This saves hundreds of bytes on complex URLs.
  */
 
 import { BinaryWriter, BinaryReader } from './codec.js';
 import { compress, decompress, base64UrlEncode, base64UrlDecode } from './compress.js';
 import {
-  PATHS, UNITS, MOTORS, COMPRESSORS, CHAINS, RATIO_TYPES,
+  PATHS, PARAM_SCHEMAS, UNITS, MOTORS, COMPRESSORS, CHAINS, RATIO_TYPES, STARTING_BORES,
   PATH_TO_IDX, UNIT_TO_IDX, MOTOR_TO_IDX, COMPRESSOR_TO_IDX,
-  CHAIN_TO_IDX, RATIO_TYPE_TO_IDX,
+  CHAIN_TO_IDX, RATIO_TYPE_TO_IDX, STARTING_BORE_TO_IDX,
   TYPE, VERSION
 } from './config.js';
 
-/**
- * Encode a JavaScript value to binary.
- */
+// ============================================================================
+// Encoding
+// ============================================================================
+
 function encodeValue(writer, val) {
-  if (val === null || val === undefined) {
+  if (val === undefined) {
+    writer.writeByte(TYPE.MISSING);
+    return;
+  }
+  
+  if (val === null) {
     writer.writeByte(TYPE.NULL);
     return;
   }
@@ -30,25 +35,49 @@ function encodeValue(writer, val) {
   }
 
   if (typeof val === 'number') {
-    if (Number.isInteger(val)) {
+    if (Number.isInteger(val) && val >= 0 && val <= 255) {
+      writer.writeByte(TYPE.UINT8);
+      writer.writeByte(val);
+    } else if (Number.isInteger(val) && val >= 0 && val <= 65535) {
+      writer.writeByte(TYPE.UINT16);
+      writer.writeUint16(val);
+    } else if (Number.isInteger(val)) {
       writer.writeByte(TYPE.INT);
       writer.writeVarInt(val);
     } else {
       writer.writeByte(TYPE.FLOAT);
-      writer.writeString(String(val));
+      writer.writeString(minimalFloat(val));
     }
     return;
   }
 
   if (typeof val === 'string') {
+    // Check if it's a known starting bore
+    const boreIdx = STARTING_BORE_TO_IDX[val];
+    if (boreIdx !== undefined) {
+      writer.writeByte(TYPE.STARTING_BORE);
+      writer.writeByte(boreIdx);
+      return;
+    }
     writer.writeByte(TYPE.STRING);
     writer.writeString(val);
     return;
   }
 
   if (Array.isArray(val)) {
+    // Check for ratio pairs format [[n,n], ...]
+    if (val.length > 0 && Array.isArray(val[0]) && val[0].length === 2) {
+      writer.writeByte(TYPE.PAIRS);
+      writer.writeVarUint(val.length);
+      for (const [a, b] of val) {
+        writer.writeVarUint(a);
+        writer.writeVarUint(b);
+      }
+      return;
+    }
+    
     writer.writeByte(TYPE.ARRAY);
-    writer.writeVarInt(val.length);
+    writer.writeVarUint(val.length);
     for (const item of val) {
       encodeValue(writer, item);
     }
@@ -63,7 +92,7 @@ function encodeValue(writer, val) {
       const unitIdx = UNIT_TO_IDX[val.u];
       if (unitIdx !== undefined) {
         writer.writeByte(TYPE.UNIT_VALUE);
-        writer.writeFloat(val.s);
+        writer.writeNumber(val.s);
         writer.writeByte(unitIdx);
         return;
       }
@@ -74,7 +103,7 @@ function encodeValue(writer, val) {
       const motorIdx = MOTOR_TO_IDX[val.name];
       if (motorIdx !== undefined) {
         writer.writeByte(TYPE.MOTOR);
-        writer.writeVarInt(val.quantity);
+        writer.writeByte(val.quantity);  // Usually 1-8
         writer.writeByte(motorIdx);
         return;
       }
@@ -85,13 +114,13 @@ function encodeValue(writer, val) {
       const ratioIdx = RATIO_TYPE_TO_IDX[val.ratioType];
       if (ratioIdx !== undefined) {
         writer.writeByte(TYPE.RATIO);
-        writer.writeFloat(val.magnitude);
+        writer.writeNumber(val.magnitude);
         writer.writeByte(ratioIdx);
         return;
       }
     }
 
-    // Compressor or Chain: {"name": "..."}
+    // Compressor: {"name": "compressor"}
     if (keys.length === 1 && 'name' in val) {
       const compIdx = COMPRESSOR_TO_IDX[val.name];
       if (compIdx !== undefined) {
@@ -114,41 +143,32 @@ function encodeValue(writer, val) {
       return;
     }
 
-    // Ratio pairs: {"pairs": [[n,n], ...]}
+    // Ratio pairs wrapper: {"pairs": [[n,n], ...]}
     if (keys.length === 1 && 'pairs' in val && Array.isArray(val.pairs)) {
-      writer.writeByte(TYPE.ARRAY);
-      writer.writeVarInt(val.pairs.length);
-      for (const pair of val.pairs) {
-        writer.writeByte(TYPE.ARRAY);
-        writer.writeVarInt(2);
-        writer.writeByte(TYPE.INT);
-        writer.writeVarInt(pair[0]);
-        writer.writeByte(TYPE.INT);
-        writer.writeVarInt(pair[1]);
+      writer.writeByte(TYPE.PAIRS);
+      writer.writeVarUint(val.pairs.length);
+      for (const [a, b] of val.pairs) {
+        writer.writeVarUint(a);
+        writer.writeVarUint(b);
       }
       return;
     }
 
     // Generic object
     writer.writeByte(TYPE.OBJECT);
-    writer.writeVarInt(keys.length);
+    writer.writeVarUint(keys.length);
     for (const key of keys) {
       writer.writeString(key);
       encodeValue(writer, val[key]);
     }
-    return;
   }
-
-  // Fallback: string representation
-  writer.writeByte(TYPE.STRING);
-  writer.writeString(String(val));
 }
 
 function encodePistons(writer, pistons) {
-  writer.writeVarInt(pistons.length);
+  writer.writeVarUint(pistons.length);
   for (const p of pistons) {
     writer.writeString(p.name);
-    writer.writeVarInt(p.quantity);
+    writer.writeByte(p.quantity);
     encodeValue(writer, p.bore);
     encodeValue(writer, p.rodDiameter);
     encodeValue(writer, p.strokeLength);
@@ -159,34 +179,39 @@ function encodePistons(writer, pistons) {
   }
 }
 
-/**
- * Decode a binary value back to JavaScript.
- */
+// ============================================================================
+// Decoding
+// ============================================================================
+
 function decodeValue(reader) {
   const type = reader.readByte();
 
   switch (type) {
+    case TYPE.MISSING: return undefined;
     case TYPE.NULL: return null;
     case TYPE.BOOL_FALSE: return false;
     case TYPE.BOOL_TRUE: return true;
+    case TYPE.UINT8: return reader.readByte();
+    case TYPE.UINT16: return reader.readUint16();
     case TYPE.INT: return reader.readVarInt();
     case TYPE.FLOAT: return parseFloat(reader.readString());
     case TYPE.STRING: return reader.readString();
+    case TYPE.STARTING_BORE: return STARTING_BORES[reader.readByte()];
 
     case TYPE.UNIT_VALUE: {
-      const s = reader.readFloat();
+      const s = reader.readNumber();
       const u = UNITS[reader.readByte()];
       return { s, u };
     }
 
     case TYPE.MOTOR: {
-      const quantity = reader.readVarInt();
+      const quantity = reader.readByte();
       const name = MOTORS[reader.readByte()];
       return { quantity, name };
     }
 
     case TYPE.RATIO: {
-      const magnitude = reader.readFloat();
+      const magnitude = reader.readNumber();
       const ratioType = RATIO_TYPES[reader.readByte()];
       return { magnitude, ratioType };
     }
@@ -198,7 +223,7 @@ function decodeValue(reader) {
       return { name: CHAINS[reader.readByte()] };
 
     case TYPE.ARRAY: {
-      const len = reader.readVarInt();
+      const len = reader.readVarUint();
       const arr = [];
       for (let i = 0; i < len; i++) {
         arr.push(decodeValue(reader));
@@ -207,7 +232,7 @@ function decodeValue(reader) {
     }
 
     case TYPE.OBJECT: {
-      const len = reader.readVarInt();
+      const len = reader.readVarUint();
       const obj = {};
       for (let i = 0; i < len; i++) {
         const key = reader.readString();
@@ -219,18 +244,27 @@ function decodeValue(reader) {
     case TYPE.PISTONS:
       return { pistons: decodePistons(reader) };
 
+    case TYPE.PAIRS: {
+      const len = reader.readVarUint();
+      const pairs = [];
+      for (let i = 0; i < len; i++) {
+        pairs.push([reader.readVarUint(), reader.readVarUint()]);
+      }
+      return { pairs };
+    }
+
     default:
       throw new Error(`Unknown type marker: ${type}`);
   }
 }
 
 function decodePistons(reader) {
-  const count = reader.readVarInt();
+  const count = reader.readVarUint();
   const pistons = [];
   for (let i = 0; i < count; i++) {
     pistons.push({
       name: reader.readString(),
-      quantity: reader.readVarInt(),
+      quantity: reader.readByte(),
       bore: decodeValue(reader),
       rodDiameter: decodeValue(reader),
       strokeLength: decodeValue(reader),
@@ -243,15 +277,16 @@ function decodePistons(reader) {
   return pistons;
 }
 
+// ============================================================================
+// URL Encoding (Schema-based)
+// ============================================================================
+
 /**
  * Encode a ReCalc URL to binary format.
- * @param {string} url - Full reca.lc URL
- * @returns {Uint8Array} - Encoded binary data
  */
 export function encodeRecalcUrl(url) {
   const u = new URL(url);
 
-  // Validate domain
   if (!u.hostname.endsWith('reca.lc')) {
     throw new Error('Only reca.lc URLs are supported');
   }
@@ -269,28 +304,52 @@ export function encodeRecalcUrl(url) {
   }
   writer.writeByte(pathIdx);
 
-  // Parse and encode query parameters
-  const params = [];
+  // Parse parameters
+  const params = {};
   for (const [key, value] of u.searchParams) {
     let parsed;
     try {
       parsed = JSON.parse(value);
     } catch {
-      // Not JSON, keep as string or number
       parsed = /^\d+$/.test(value) ? parseInt(value, 10) :
                /^\d+\.\d+$/.test(value) ? parseFloat(value) : value;
     }
-    params.push([key, parsed]);
+    params[key] = parsed;
   }
 
-  // Sort params by key for consistency
-  params.sort((a, b) => a[0].localeCompare(b[0]));
-
-  // Write params
-  writer.writeVarInt(params.length);
-  for (const [key, val] of params) {
-    writer.writeString(key);
-    encodeValue(writer, val);
+  // Get schema for this calculator
+  const schema = PARAM_SCHEMAS[path];
+  
+  if (schema) {
+    // Schema-based encoding: values in order, no keys
+    const extraParams = {};
+    
+    for (const key of schema) {
+      encodeValue(writer, params[key]);  // undefined → MISSING
+    }
+    
+    // Check for any extra parameters not in schema
+    for (const key of Object.keys(params)) {
+      if (!schema.includes(key)) {
+        extraParams[key] = params[key];
+      }
+    }
+    
+    // Write extra parameters count and data
+    const extraKeys = Object.keys(extraParams);
+    writer.writeVarUint(extraKeys.length);
+    for (const key of extraKeys) {
+      writer.writeString(key);
+      encodeValue(writer, extraParams[key]);
+    }
+  } else {
+    // Fallback: key-value encoding for unknown calculators
+    const keys = Object.keys(params).sort();
+    writer.writeVarUint(keys.length);
+    for (const key of keys) {
+      writer.writeString(key);
+      encodeValue(writer, params[key]);
+    }
   }
 
   return writer.toUint8Array();
@@ -298,40 +357,47 @@ export function encodeRecalcUrl(url) {
 
 /**
  * Decode binary format back to a ReCalc URL.
- * @param {Uint8Array} bytes - Encoded binary data
- * @returns {string} - Full reca.lc URL
  */
 export function decodeRecalcUrl(bytes) {
   const reader = new BinaryReader(bytes);
 
-  // Version
   const version = reader.readByte();
   if (version !== VERSION) {
     throw new Error(`Unsupported encoding version: ${version}`);
   }
 
-  // Path
   const pathIdx = reader.readByte();
   const path = PATHS[pathIdx];
   if (!path) {
     throw new Error(`Unknown path index: ${pathIdx}`);
   }
 
-  // Params
-  const paramCount = reader.readVarInt();
   const searchParams = new URLSearchParams();
+  const schema = PARAM_SCHEMAS[path];
 
-  for (let i = 0; i < paramCount; i++) {
-    const key = reader.readString();
-    const val = decodeValue(reader);
-
-    // Encode value back to URL format
-    if (typeof val === 'object' && val !== null) {
-      searchParams.set(key, JSON.stringify(val));
-    } else if (typeof val === 'number' || typeof val === 'string') {
-      searchParams.set(key, String(val));
-    } else if (typeof val === 'boolean') {
-      searchParams.set(key, val ? '1' : '0');
+  if (schema) {
+    // Schema-based decoding
+    for (const key of schema) {
+      const val = decodeValue(reader);
+      if (val !== undefined) {
+        setParam(searchParams, key, val);
+      }
+    }
+    
+    // Read extra parameters
+    const extraCount = reader.readVarUint();
+    for (let i = 0; i < extraCount; i++) {
+      const key = reader.readString();
+      const val = decodeValue(reader);
+      setParam(searchParams, key, val);
+    }
+  } else {
+    // Key-value decoding
+    const count = reader.readVarUint();
+    for (let i = 0; i < count; i++) {
+      const key = reader.readString();
+      const val = decodeValue(reader);
+      setParam(searchParams, key, val);
     }
   }
 
@@ -339,25 +405,43 @@ export function decodeRecalcUrl(bytes) {
   return `https://www.reca.lc/${path}${query ? '?' + query : ''}`;
 }
 
-/**
- * Shrink a ReCalc URL to a compact token.
- * @param {string} longUrl - Full reca.lc URL
- * @returns {Promise<string>} - Compressed base64url token
- */
+function setParam(searchParams, key, val) {
+  if (typeof val === 'object' && val !== null) {
+    searchParams.set(key, JSON.stringify(val));
+  } else if (typeof val === 'number' || typeof val === 'string') {
+    searchParams.set(key, String(val));
+  } else if (typeof val === 'boolean') {
+    searchParams.set(key, val ? '1' : '0');
+  }
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
+
 export async function shrinkUrl(longUrl) {
   const encoded = encodeRecalcUrl(longUrl);
   const compressed = await compress(encoded);
   return base64UrlEncode(compressed);
 }
 
-/**
- * Expand a token back to a ReCalc URL.
- * @param {string} token - Compressed base64url token
- * @returns {Promise<string>} - Full reca.lc URL
- */
 export async function expandUrl(token) {
   const compressed = base64UrlDecode(token);
   const encoded = await decompress(compressed);
   return decodeRecalcUrl(encoded);
 }
 
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function minimalFloat(f) {
+  const s = String(f);
+  for (let places = 1; places < 10; places++) {
+    const rounded = f.toFixed(places);
+    if (parseFloat(rounded) === f && rounded.length < s.length) {
+      return rounded;
+    }
+  }
+  return s;
+}

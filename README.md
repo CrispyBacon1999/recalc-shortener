@@ -82,9 +82,16 @@ To add support for new reca.lc calculator types:
 
 | Calculator | Original | Compressed | Savings |
 |------------|----------|------------|---------|
-| Belts      | 249 chars | ~175 chars | 30% |
-| Flywheel   | 894 chars | ~310 chars | 65% |
-| Drivetrain | 1,403 chars | ~430 chars | 70% |
+| Belts      | 249 chars | ~100 chars | 60% |
+| Flywheel   | 894 chars | 124 chars | **86%** |
+| Drivetrain | 1,403 chars | 176 chars | **87%** |
+
+### How V2 Achieves Better Compression
+
+1. **Schema-based encoding** - Parameter names are not stored! Each calculator has a predefined list of parameters, and values are stored in that order.
+2. **Raw deflate** - Uses deflate without gzip header (saves 18 bytes)
+3. **Compact binary format** - Small integers use 1 byte, units/motors use 1-byte indices
+4. **Smart compression** - Skips compression if it doesn't help (for tiny payloads)
 
 ## License
 

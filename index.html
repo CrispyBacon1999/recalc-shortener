@@ -13,14 +13,6 @@
 
 <body>
     <div class="container">
-        <header>
-            <h1>⚡ ReCalc URL Shortener</h1>
-            <p class="subtitle">
-                Compress reca.lc calculator URLs to their smallest possible form.<br>
-                All data stays in the URL — no database needed.
-            </p>
-        </header>
-
         <div class="card">
             <label for="longUrl">Paste ReCalc URL</label>
             <textarea id="longUrl" placeholder="https://www.reca.lc/flywheel?currentLimit=..."
@@ -39,21 +31,6 @@
                 <button id="copyLinkBtn" class="btn-secondary" disabled>Copy Link</button>
                 <button id="testLinkBtn" class="btn-secondary" disabled>Test →</button>
             </div>
-
-            <div class="stats" id="stats">
-                <div class="stat">
-                    <div class="stat-value original" id="originalSize">—</div>
-                    <div class="stat-label">Original</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="compressedSize">—</div>
-                    <div class="stat-label">Compressed</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="savings">—</div>
-                    <div class="stat-label">Savings</div>
-                </div>
-            </div>
         </div>
 
         <div id="error" class="error hidden"></div>
@@ -68,9 +45,6 @@
         const shrinkBtn = document.getElementById('shrinkBtn');
         const copyLinkBtn = document.getElementById('copyLinkBtn');
         const testLinkBtn = document.getElementById('testLinkBtn');
-        const originalSizeEl = document.getElementById('originalSize');
-        const compressedSizeEl = document.getElementById('compressedSize');
-        const savingsEl = document.getElementById('savings');
 
         function showError(msg) {
             errorEl.textContent = msg;
@@ -82,9 +56,6 @@
             goLinkEl.textContent = '';
             copyLinkBtn.disabled = true;
             testLinkBtn.disabled = true;
-            originalSizeEl.textContent = '—';
-            compressedSizeEl.textContent = '—';
-            savingsEl.textContent = '—';
 
             const input = longUrlEl.value.trim();
             if (!input) {
@@ -101,14 +72,6 @@
                 copyLinkBtn.disabled = false;
                 testLinkBtn.disabled = false;
 
-                // Stats
-                const origLen = input.length;
-                const newLen = shortUrl.length;
-                const saved = Math.round((1 - newLen / origLen) * 100);
-
-                originalSizeEl.textContent = `${origLen}`;
-                compressedSizeEl.textContent = `${newLen}`;
-                savingsEl.textContent = `${saved}%`;
             } catch (e) {
                 console.error(e);
                 showError(e.message || 'Failed to compress URL');

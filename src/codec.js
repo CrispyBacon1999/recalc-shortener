@@ -1,113 +1,147 @@
 /**
  * Binary encoding/decoding utilities.
  * 
- * These classes handle efficient binary serialization using:
- * - Variable-length integers (small numbers use fewer bytes)
- * - Float encoding with automatic integer optimization
- * - UTF-8 string encoding with length prefix
+ * Optimized for minimal byte usage:
+ * - Variable-length integers
+ * - Compact float encoding
+ * - Fixed-size integers for common ranges
  */
 
-/**
- * Writes binary data to a buffer.
- */
 export class BinaryWriter {
-  constructor() {
-    this.buffer = [];
-  }
-
-  writeByte(b) {
-    this.buffer.push(b & 0xFF);
-  }
-
-  /**
-   * Write a variable-length integer.
-   * - 0-127: 1 byte
-   * - 128-16383: 2 bytes
-   * - 16384+: 3 bytes
-   * - Negative: 0xFF prefix + absolute value
-   */
-  writeVarInt(n) {
-    if (n < 0) {
-      this.writeByte(0xFF);
-      this.writeVarInt(-n);
-    } else if (n < 128) {
-      this.writeByte(n);
-    } else if (n < 16384) {
-      this.writeByte(0x80 | (n & 0x7F));
-      this.writeByte(n >> 7);
-    } else {
-      this.writeByte(0x80 | (n & 0x7F));
-      this.writeByte(0x80 | ((n >> 7) & 0x7F));
-      this.writeByte(n >> 14);
+    constructor() {
+        this.buffer = [];
     }
-  }
 
-  /**
-   * Write a number, automatically choosing integer or float encoding.
-   */
-  writeFloat(f) {
-    if (Number.isInteger(f) && f >= -32768 && f <= 32767) {
-      this.writeByte(0x01); // integer marker
-      this.writeVarInt(f);
-    } else {
-      this.writeByte(0x02); // float string marker
-      this.writeString(String(f));
+    writeByte(b) {
+        this.buffer.push(b & 0xFF);
     }
-  }
 
-  /**
-   * Write a UTF-8 string with length prefix.
-   */
-  writeString(s) {
-    const encoded = new TextEncoder().encode(s);
-    this.writeVarInt(encoded.length);
-    for (const b of encoded) this.writeByte(b);
-  }
+    writeUint16(n) {
+        this.buffer.push(n & 0xFF);
+        this.buffer.push((n >> 8) & 0xFF);
+    }
 
-  toUint8Array() {
-    return new Uint8Array(this.buffer);
-  }
+    /**
+     * Variable-length unsigned integer.
+     * 0-127: 1 byte, 128-16383: 2 bytes, etc.
+     */
+    writeVarUint(n) {
+        while (n >= 0x80) {
+            this.buffer.push((n & 0x7F) | 0x80);
+            n >>>= 7;
+        }
+        this.buffer.push(n);
+    }
+
+    /**
+     * Variable-length signed integer using zigzag encoding.
+     */
+    writeVarInt(n) {
+        // Zigzag encode: (n << 1) ^ (n >> 31)
+        const zigzag = n >= 0 ? n * 2 : (-n * 2) - 1;
+        this.writeVarUint(zigzag);
+    }
+
+    /**
+     * Write a number - uses smallest representation.
+     */
+    writeNumber(f) {
+        if (Number.isInteger(f)) {
+            if (f >= 0 && f <= 255) {
+                this.writeByte(0x01);  // uint8
+                this.writeByte(f);
+            } else if (f >= 0 && f <= 65535) {
+                this.writeByte(0x02);  // uint16
+                this.writeUint16(f);
+            } else {
+                this.writeByte(0x03);  // varint
+                this.writeVarInt(f);
+            }
+        } else {
+            // Float - encode as minimal string
+            this.writeByte(0x04);
+            this.writeString(minimalFloat(f));
+        }
+    }
+
+    writeString(s) {
+        const encoded = new TextEncoder().encode(s);
+        this.writeVarUint(encoded.length);
+        for (const b of encoded) this.buffer.push(b);
+    }
+
+    toUint8Array() {
+        return new Uint8Array(this.buffer);
+    }
+}
+
+export class BinaryReader {
+    constructor(bytes) {
+        this.bytes = bytes;
+        this.pos = 0;
+    }
+
+    readByte() {
+        return this.bytes[this.pos++];
+    }
+
+    readUint16() {
+        const lo = this.bytes[this.pos++];
+        const hi = this.bytes[this.pos++];
+        return lo | (hi << 8);
+    }
+
+    readVarUint() {
+        let result = 0;
+        let shift = 0;
+        while (true) {
+            const b = this.bytes[this.pos++];
+            result |= (b & 0x7F) << shift;
+            if ((b & 0x80) === 0) break;
+            shift += 7;
+        }
+        return result;
+    }
+
+    readVarInt() {
+        const zigzag = this.readVarUint();
+        return (zigzag >>> 1) ^ -(zigzag & 1);
+    }
+
+    readNumber() {
+        const type = this.readByte();
+        switch (type) {
+            case 0x01: return this.readByte();
+            case 0x02: return this.readUint16();
+            case 0x03: return this.readVarInt();
+            case 0x04: return parseFloat(this.readString());
+            default: throw new Error(`Unknown number type: ${type}`);
+        }
+    }
+
+    readString() {
+        const len = this.readVarUint();
+        const bytes = this.bytes.slice(this.pos, this.pos + len);
+        this.pos += len;
+        return new TextDecoder().decode(bytes);
+    }
+
+    hasMore() {
+        return this.pos < this.bytes.length;
+    }
 }
 
 /**
- * Reads binary data from a buffer.
+ * Convert float to minimal string representation.
  */
-export class BinaryReader {
-  constructor(bytes) {
-    this.bytes = bytes;
-    this.pos = 0;
-  }
-
-  readByte() {
-    return this.bytes[this.pos++];
-  }
-
-  readVarInt() {
-    let b = this.readByte();
-    if (b === 0xFF) return -this.readVarInt();
-    if ((b & 0x80) === 0) return b;
-    let result = b & 0x7F;
-    b = this.readByte();
-    if ((b & 0x80) === 0) return result | (b << 7);
-    result |= (b & 0x7F) << 7;
-    b = this.readByte();
-    return result | (b << 14);
-  }
-
-  readFloat() {
-    const marker = this.readByte();
-    return marker === 0x01 ? this.readVarInt() : parseFloat(this.readString());
-  }
-
-  readString() {
-    const len = this.readVarInt();
-    const bytes = this.bytes.slice(this.pos, this.pos + len);
-    this.pos += len;
-    return new TextDecoder().decode(bytes);
-  }
-
-  hasMore() {
-    return this.pos < this.bytes.length;
-  }
+export function minimalFloat(f) {
+    const s = String(f);
+    // Try to use fewer decimal places if possible
+    for (let places = 1; places < 10; places++) {
+        const rounded = f.toFixed(places);
+        if (parseFloat(rounded) === f) {
+            return rounded.length < s.length ? rounded : s;
+        }
+    }
+    return s;
 }
-

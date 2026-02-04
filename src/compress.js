@@ -1,35 +1,62 @@
 /**
- * Compression utilities using browser-native gzip.
+ * Compression utilities.
+ * 
+ * Uses raw deflate (not gzip) to avoid header overhead.
+ * For very small data, may skip compression if it doesn't help.
  */
 
 /**
- * Compress bytes using gzip.
- * @param {Uint8Array} bytes - Data to compress
- * @returns {Promise<Uint8Array>} - Compressed data
+ * Compress bytes using raw deflate.
+ * Returns uncompressed data if compression doesn't help.
+ * 
+ * Format: [flag byte] [data...]
+ * - flag 0x00: data is uncompressed
+ * - flag 0x01: data is deflate compressed
  */
 export async function compress(bytes) {
-  const stream = new CompressionStream('gzip');
+  // Try deflate compression
+  const stream = new CompressionStream('deflate');
   const blob = new Blob([bytes]);
   const compressed = blob.stream().pipeThrough(stream);
-  return new Uint8Array(await new Response(compressed).arrayBuffer());
+  const compressedBytes = new Uint8Array(await new Response(compressed).arrayBuffer());
+  
+  // Use compressed only if it's actually smaller (accounting for flag byte)
+  if (compressedBytes.length < bytes.length) {
+    const result = new Uint8Array(1 + compressedBytes.length);
+    result[0] = 0x01;  // compressed flag
+    result.set(compressedBytes, 1);
+    return result;
+  } else {
+    const result = new Uint8Array(1 + bytes.length);
+    result[0] = 0x00;  // uncompressed flag
+    result.set(bytes, 1);
+    return result;
+  }
 }
 
 /**
- * Decompress gzip bytes.
- * @param {Uint8Array} bytes - Compressed data
- * @returns {Promise<Uint8Array>} - Decompressed data
+ * Decompress bytes.
  */
 export async function decompress(bytes) {
-  const stream = new DecompressionStream('gzip');
-  const blob = new Blob([bytes]);
-  const decompressed = blob.stream().pipeThrough(stream);
-  return new Uint8Array(await new Response(decompressed).arrayBuffer());
+  const flag = bytes[0];
+  const data = bytes.slice(1);
+  
+  if (flag === 0x00) {
+    // Uncompressed
+    return data;
+  } else if (flag === 0x01) {
+    // Deflate compressed
+    const stream = new DecompressionStream('deflate');
+    const blob = new Blob([data]);
+    const decompressed = blob.stream().pipeThrough(stream);
+    return new Uint8Array(await new Response(decompressed).arrayBuffer());
+  } else {
+    throw new Error(`Unknown compression flag: ${flag}`);
+  }
 }
 
 /**
  * Encode bytes to URL-safe base64.
- * @param {Uint8Array} bytes - Data to encode
- * @returns {string} - Base64url string
  */
 export function base64UrlEncode(bytes) {
   let binary = '';
@@ -44,8 +71,6 @@ export function base64UrlEncode(bytes) {
 
 /**
  * Decode URL-safe base64 to bytes.
- * @param {string} s - Base64url string
- * @returns {Uint8Array} - Decoded bytes
  */
 export function base64UrlDecode(s) {
   const padded = s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4);
@@ -56,4 +81,3 @@ export function base64UrlDecode(s) {
   }
   return bytes;
 }
-
