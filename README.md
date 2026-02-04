@@ -50,7 +50,19 @@ bun dev
 
 ## Deployment
 
-### Cloudflare Pages (Recommended)
+### Cloudflare Workers
+
+This repo includes a Worker that serves the static assets and handles the `/go` redirect.
+
+```bash
+# Local worker dev server
+bun run worker:dev
+
+# Deploy the Worker
+bun run deploy
+```
+
+### Cloudflare Pages (Alternative)
 
 1. Push to GitHub
 2. Connect to Cloudflare Pages
@@ -60,7 +72,7 @@ bun dev
 Or deploy directly:
 
 ```bash
-bun run deploy
+bun run deploy:pages
 ```
 
 ### Manual Deployment

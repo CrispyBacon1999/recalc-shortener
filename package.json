@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "bun server.ts",
     "start": "bun server.ts",
-    "deploy": "wrangler pages deploy . --project-name=recalc-shortener"
+    "worker:dev": "bunx wrangler dev",
+    "deploy": "bunx wrangler deploy",
+    "deploy:pages": "wrangler pages deploy . --project-name=recalc-shortener"
   },
   "keywords": [
     "recalc",
