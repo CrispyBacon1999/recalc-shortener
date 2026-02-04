@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ReCalc URL Shortener</title>
+    <meta name="description" content="Compress reca.lc calculator URLs for easy sharing">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ ReCalc URL Shortener</h1>
+            <p class="subtitle">
+                Compress reca.lc calculator URLs to their smallest possible form.<br>
+                All data stays in the URL — no database needed.
+            </p>
+        </header>
+
+        <div class="card">
+            <label for="longUrl">Paste ReCalc URL</label>
+            <textarea id="longUrl" placeholder="https://www.reca.lc/flywheel?currentLimit=..."
+                spellcheck="false"></textarea>
+
+            <div class="btn-row">
+                <button id="shrinkBtn" class="btn-primary">Compress</button>
+            </div>
+        </div>
+
+        <div class="card" id="resultCard">
+            <label>Shortened URL</label>
+            <code id="goLink" class="result-link"></code>
+
+            <div class="btn-row">
+                <button id="copyLinkBtn" class="btn-secondary" disabled>Copy Link</button>
+                <button id="testLinkBtn" class="btn-secondary" disabled>Test →</button>
+            </div>
+
+            <div class="stats" id="stats">
+                <div class="stat">
+                    <div class="stat-value original" id="originalSize">—</div>
+                    <div class="stat-label">Original</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="compressedSize">—</div>
+                    <div class="stat-label">Compressed</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="savings">—</div>
+                    <div class="stat-label">Savings</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error" class="error hidden"></div>
+    </div>
+
+    <script type="module">
+        import { shrinkUrl } from '/src/recalc.js';
+
+        const longUrlEl = document.getElementById('longUrl');
+        const goLinkEl = document.getElementById('goLink');
+        const errorEl = document.getElementById('error');
+        const shrinkBtn = document.getElementById('shrinkBtn');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const testLinkBtn = document.getElementById('testLinkBtn');
+        const originalSizeEl = document.getElementById('originalSize');
+        const compressedSizeEl = document.getElementById('compressedSize');
+        const savingsEl = document.getElementById('savings');
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+            errorEl.classList.toggle('hidden', !msg);
+        }
+
+        shrinkBtn.addEventListener('click', async () => {
+            showError('');
+            goLinkEl.textContent = '';
+            copyLinkBtn.disabled = true;
+            testLinkBtn.disabled = true;
+            originalSizeEl.textContent = '—';
+            compressedSizeEl.textContent = '—';
+            savingsEl.textContent = '—';
+
+            const input = longUrlEl.value.trim();
+            if (!input) {
+                showError('Paste a ReCalc URL first.');
+                return;
+            }
+
+            try {
+                const token = await shrinkUrl(input);
+                const goUrl = new URL('/go#' + token, window.location.href);
+                const shortUrl = goUrl.toString();
+
+                goLinkEl.textContent = shortUrl;
+                copyLinkBtn.disabled = false;
+                testLinkBtn.disabled = false;
+
+                // Stats
+                const origLen = input.length;
+                const newLen = shortUrl.length;
+                const saved = Math.round((1 - newLen / origLen) * 100);
+
+                originalSizeEl.textContent = `${origLen}`;
+                compressedSizeEl.textContent = `${newLen}`;
+                savingsEl.textContent = `${saved}%`;
+            } catch (e) {
+                console.error(e);
+                showError(e.message || 'Failed to compress URL');
+            }
+        });
+
+        copyLinkBtn.addEventListener('click', async () => {
+            await navigator.clipboard.writeText(goLinkEl.textContent);
+            copyLinkBtn.textContent = 'Copied!';
+            setTimeout(() => copyLinkBtn.textContent = 'Copy Link', 1500);
+        });
+
+        testLinkBtn.addEventListener('click', () => {
+            window.open(goLinkEl.textContent, '_blank');
+        });
+    </script>
+</body>
+
+</html>

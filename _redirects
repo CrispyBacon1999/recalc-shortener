@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects
+# Route /go to /go.html (preserves hash fragment)
+/go  /go.html  200
+

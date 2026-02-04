@@ -1,0 +1,56 @@
+Flywheel Calculator
+---
+https://www.reca.lc/flywheel?currentLimit=%7B%22s%22%3A80%2C%22u%22%3A%22A%22%7D&efficiency=85&flywheelMomentOfInertia=%7B%22s%22%3A0%2C%22u%22%3A%22in2%2Albs%22%7D&flywheelRadius=%7B%22s%22%3A0%2C%22u%22%3A%22in%22%7D&flywheelRatio=%7B%22magnitude%22%3A1%2C%22ratioType%22%3A%22Reduction%22%7D&flywheelWeight=%7B%22s%22%3A0%2C%22u%22%3A%22lbs%22%7D&motor=%7B%22quantity%22%3A1%2C%22name%22%3A%22Kraken%20X60%22%7D&motorRatio=%7B%22magnitude%22%3A1%2C%22ratioType%22%3A%22Step-up%22%7D&projectileRadius=%7B%22s%22%3A2%2C%22u%22%3A%22in%22%7D&projectileWeight=%7B%22s%22%3A0.5%2C%22u%22%3A%22lbs%22%7D&shooterMomentOfInertia=%7B%22s%22%3A19.90625%2C%22u%22%3A%22in2%2Albs%22%7D&shooterRadius=%7B%22s%22%3A1.75%2C%22u%22%3A%22in%22%7D&shooterTargetSpeed=%7B%22s%22%3A5500%2C%22u%22%3A%22rpm%22%7D&shooterWeight=%7B%22s%22%3A13%2C%22u%22%3A%22lbs%22%7D&useCustomFlywheelMoi=0&useCustomShooterMoi=0
+
+
+Belt Calculator
+---
+https://www.reca.lc/belts?customBeltTeeth=125&desiredCenter=%7B%22s%22%3A5%2C%22u%22%3A%22in%22%7D&extraCenter=%7B%22s%22%3A0%2C%22u%22%3A%22mm%22%7D&p1Teeth=16&p2Teeth=24&pitch=%7B%22s%22%3A5%2C%22u%22%3A%22mm%22%7D&toothIncrement=5&useCustomBelt=0
+
+
+Chain Calculator
+---
+https://www.reca.lc/chains?allowHalfLinks=0&chain=%7B%22name%22%3A%22%2325%22%7D&desiredCenter=%7B%22s%22%3A5%2C%22u%22%3A%22in%22%7D&extraCenter=%7B%22s%22%3A0%2C%22u%22%3A%22mm%22%7D&p1Teeth=16&p2Teeth=36
+
+
+Pneumatics Calculator
+---
+https://www.reca.lc/pneumatics?compressor=%7B%22name%22%3A%22VIAIR%2090C%20%2812V%29%22%7D&pistons=%7B%22pistons%22%3A%5B%7B%22name%22%3A%22Cylinder%201%22%2C%22quantity%22%3A1%2C%22bore%22%3A%7B%22s%22%3A1.5%2C%22u%22%3A%22in%22%7D%2C%22rodDiameter%22%3A%7B%22s%22%3A0.4375%2C%22u%22%3A%22in%22%7D%2C%22strokeLength%22%3A%7B%22s%22%3A12%2C%22u%22%3A%22in%22%7D%2C%22retractPressure%22%3A%7B%22s%22%3A60%2C%22u%22%3A%22psi%22%7D%2C%22extendPressure%22%3A%7B%22s%22%3A60%2C%22u%22%3A%22psi%22%7D%2C%22enabled%22%3Atrue%2C%22period%22%3A%7B%22s%22%3A8%2C%22u%22%3A%22s%22%7D%7D%2C%7B%22name%22%3A%22Cylinder%202%22%2C%22quantity%22%3A2%2C%22bore%22%3A%7B%22s%22%3A0.75%2C%22u%22%3A%22in%22%7D%2C%22rodDiameter%22%3A%7B%22s%22%3A0.25%2C%22u%22%3A%22in%22%7D%2C%22strokeLength%22%3A%7B%22s%22%3A6%2C%22u%22%3A%22in%22%7D%2C%22retractPressure%22%3A%7B%22s%22%3A60%2C%22u%22%3A%22psi%22%7D%2C%22extendPressure%22%3A%7B%22s%22%3A60%2C%22u%22%3A%22psi%22%7D%2C%22enabled%22%3Atrue%2C%22period%22%3A%7B%22s%22%3A12%2C%22u%22%3A%22s%22%7D%7D%5D%7D&tankVolume=%7B%22s%22%3A1148%2C%22u%22%3A%22cm3%22%7D
+
+
+Arm Calculator
+---
+https://www.reca.lc/arm?armMass=%7B%22s%22%3A15%2C%22u%22%3A%22lbs%22%7D&comLength=%7B%22s%22%3A20%2C%22u%22%3A%22in%22%7D&currentLimit=%7B%22s%22%3A40%2C%22u%22%3A%22A%22%7D&efficiency=100&endAngle=%7B%22s%22%3A90%2C%22u%22%3A%22deg%22%7D&iterationLimit=10000&motor=%7B%22quantity%22%3A2%2C%22name%22%3A%22Kraken%20X60%20%28FOC%29%22%7D&ratio=%7B%22magnitude%22%3A100%2C%22ratioType%22%3A%22Reduction%22%7D&startAngle=%7B%22s%22%3A0%2C%22u%22%3A%22deg%22%7D
+
+
+
+Linear Mechanism Calculator
+---
+https://www.reca.lc/linear?angle=%7B%22s%22%3A90%2C%22u%22%3A%22deg%22%7D&currentLimit=%7B%22s%22%3A40%2C%22u%22%3A%22A%22%7D&efficiency=100&limitAcceleration=0&limitDeceleration=0&limitVelocity=0&limitedAcceleration=%7B%22s%22%3A400%2C%22u%22%3A%22in%2Fs2%22%7D&limitedDeceleration=%7B%22s%22%3A50%2C%22u%22%3A%22in%2Fs2%22%7D&limitedVelocity=%7B%22s%22%3A10%2C%22u%22%3A%22in%2Fs%22%7D&load=%7B%22s%22%3A15%2C%22u%22%3A%22lbs%22%7D&motor=%7B%22quantity%22%3A2%2C%22name%22%3A%22Kraken%20X60%20%28FOC%29%22%7D&ratio=%7B%22magnitude%22%3A2%2C%22ratioType%22%3A%22Reduction%22%7D&spoolDiameter=%7B%22s%22%3A1%2C%22u%22%3A%22in%22%7D&travelDistance=%7B%22s%22%3A60%2C%22u%22%3A%22in%22%7D
+
+
+Intake Calculator
+---
+https://www.reca.lc/intake?drivetrainSpeed=%7B%22s%22%3A14%2C%22u%22%3A%22ft%2Fs%22%7D&motor=%7B%22quantity%22%3A1%2C%22name%22%3A%22Kraken%20X60%20%28FOC%29%22%7D&ratio=%7B%22magnitude%22%3A2%2C%22ratioType%22%3A%22Reduction%22%7D&rollerDiameter=%7B%22s%22%3A2%2C%22u%22%3A%22in%22%7D&targetTimeToGoal=%7B%22s%22%3A0.25%2C%22u%22%3A%22s%22%7D&travelDistance=%7B%22s%22%3A15%2C%22u%22%3A%22in%22%7D
+
+
+Ratio Calculator
+---
+https://www.reca.lc/ratio?ratioPairs=%7B%22pairs%22%3A%5B%5B18%2C72%5D%2C%5B24%2C48%5D%5D%7D
+
+
+Ratio Finder
+---
+https://www.reca.lc/ratioFinder?enable12HexBore=1&enable20DPGears=1&enable25Chain=1&enable32DPGears=1&enable35Chain=1&enable38HexBore=1&enable550Pinions=1&enable775Pinions=1&enable875Bore=1&enableAM=1&enableBearingBore=1&enableFalconPinions=1&enableGT2=1&enableHTD=1&enableKrakenPinions=1&enableMPs=1&enableMaxSpline=1&enableNEOPinions=1&enableREV=1&enableRT25=1&enableSplineXL=1&enableSports=1&enableTTB=1&enableVEX=0&enableVPs=0&enableVortexPinions=1&enableWCP=1&forceStartingPinionSize=0&maxGearTeeth=84&maxPulleyTeeth=84&maxSprocketTeeth=84&maxStages=2&minGearTeeth=7&minPulleyTeeth=8&minSprocketTeeth=8&minStages=1&printablePulleys=0&reductionError=0.1&startingBore=NEO&startingPinionSize=14&targetReduction=15
+
+
+Drivetrain Calculator
+---
+https://www.reca.lc/drive?appliedVoltageRamp=%7B%22s%22%3A1200%2C%22u%22%3A%22V%2Fs%22%7D&batteryAmpHours=%7B%22s%22%3A18%2C%22u%22%3A%22A%2Ah%22%7D&batteryResistance=%7B%22s%22%3A0.018%2C%22u%22%3A%22Ohm%22%7D&batteryVoltageAtRest=%7B%22s%22%3A12.6%2C%22u%22%3A%22V%22%7D&efficiency=97&filtering=1&gearRatioMax=%7B%22magnitude%22%3A15%2C%22ratioType%22%3A%22Reduction%22%7D&gearRatioMin=%7B%22magnitude%22%3A3%2C%22ratioType%22%3A%22Reduction%22%7D&maxSimulationTime=%7B%22s%22%3A4%2C%22u%22%3A%22s%22%7D&maxSpeedAccelerationThreshold=%7B%22s%22%3A0.15%2C%22u%22%3A%22ft%2Fs2%22%7D&motor=%7B%22quantity%22%3A4%2C%22name%22%3A%22Kraken%20X60%20%28FOC%29%22%7D&motorCurrentLimit=%7B%22s%22%3A60%2C%22u%22%3A%22A%22%7D&numCyclesPerMatch=24&peakBatteryDischarge=20&ratio=%7B%22magnitude%22%3A5.36%2C%22ratioType%22%3A%22Reduction%22%7D&sprintDistance=%7B%22s%22%3A25%2C%22u%22%3A%22ft%22%7D&swerve=1&targetTimeToGoal=%7B%22s%22%3A2%2C%22u%22%3A%22s%22%7D&throttleResponseMax=0.99&throttleResponseMin=0.5&weightAuxilliary=%7B%22s%22%3A24%2C%22u%22%3A%22lbs%22%7D&weightDistributionFrontBack=0.5&weightDistributionLeftRight=0.5&weightInspected=%7B%22s%22%3A125%2C%22u%22%3A%22lbs%22%7D&wheelBaseLength=%7B%22s%22%3A27%2C%22u%22%3A%22in%22%7D&wheelBaseWidth=%7B%22s%22%3A20%2C%22u%22%3A%22in%22%7D&wheelCOFDynamic=0.9&wheelCOFLateral=1.1&wheelCOFStatic=1.1&wheelDiameter=%7B%22s%22%3A4%2C%22u%22%3A%22in%22%7D
+
+
+Gear Spacing Calculator
+---
+https://www.reca.lc/gears?gear1Teeth=20&gear2Teeth=40&gearDP=20
+
+

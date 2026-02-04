@@ -1,0 +1,21 @@
+{
+  "name": "recalc-shortener",
+  "version": "1.0.0",
+  "description": "Compress reca.lc calculator URLs for easy sharing",
+  "type": "module",
+  "scripts": {
+    "dev": "bun server.ts",
+    "start": "bun server.ts",
+    "deploy": "wrangler pages deploy . --project-name=recalc-shortener"
+  },
+  "keywords": [
+    "recalc",
+    "url-shortener",
+    "frc",
+    "robotics"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3"
+  }
+}
